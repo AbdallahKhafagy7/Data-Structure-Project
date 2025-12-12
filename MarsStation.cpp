@@ -185,11 +185,23 @@ void MarsStation::moveingExecToBack()
 	}
 }
 
+
 void MarsStation::moveingOutToExec()
 {
 	mission* m;
-	int p;
-	if (OUT_missions.dequeue(m, p)) EXEC_missions.enqueue(m, p);
+	int priority;
+	while (OUT_missions.peek(m, priority)) 
+	{
+				int arrivalDay = -priority;
+				if (arrivalDay <= day) 
+				{
+						OUT_missions.dequeue(m, priority);
+			int executionEndDay = day + m->getDuration();
+			EXEC_missions.enqueue(m, -executionEndDay);
+		        }
+		else {			break;
+		}
+	}
 }
 
 
