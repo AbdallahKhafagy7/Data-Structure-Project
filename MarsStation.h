@@ -86,4 +86,7 @@ public:
 
 	// Abort a normal mission by ID (called from abortRequest)
 	void AbortMission(int missionID);
+
+	// send to checkup if maintenance required, otherwise return to available.
+	void roverToAvailCheckup(rover* r);
 };

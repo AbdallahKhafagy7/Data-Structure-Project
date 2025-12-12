@@ -1,4 +1,5 @@
 #include "UI.h"
+#include"MarsStation.h"
 
 void UI::printDay(int day,
 	LinkedQueue<mission*>* r_nm, LinkedQueue<mission*>* r_pm, LinkedQueue<mission*>* r_dm,

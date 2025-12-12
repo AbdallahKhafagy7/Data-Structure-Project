@@ -142,40 +142,6 @@ void MarsStation::checkUpTest()
 	}
 }
 
-void MarsStation::moveingBackToDone()
-{
-	mission* m;
-	int p;
-	if (BACK_missions.dequeue(m, p))
-	{
-		DONE_missions.push(m);
-
-		// Get Rover Link
-		rover* r = m->getRover();
-		if (r != nullptr)
-		{
-			int x = rand() % 100;
-			char type = r->getType();
-
-			// Rule: X < 20 -> Checkup
-			if (x < 20) {
-				// set checkup start day and send to checkup queue
-				r->setCheckupStartDay(day);
-				if (type == 'N') checkup_NR.enqueue(r);
-				else if (type == 'P') checkup_PR.enqueue(r);
-				else if (type == 'D') checkup_DR.enqueue(r);
-			}
-			else {
-				// return to available and clear checkup start
-				r->setCheckupStartDay(0);
-				if (type == 'N') Avail_NR.enqueue(r);
-				else if (type == 'P') Avail_PR.enqueue(r);
-				else if (type == 'D') Avail_DR.enqueue(r);
-			}
-		}
-	}
-}
-
 
 void MarsStation::moveingOutToExec()
 {
@@ -457,5 +423,59 @@ void MarsStation::moveingExecToBack()
 		}
 		else {
 			break;		}
+	}
+}
+void MarsStation::moveingBackToDone()
+{
+	mission* m;
+	int priority;
+
+	// Process all BACK_missions that have returned (arrivalDay <= current day)
+	while (BACK_missions.peek(m, priority)) {
+		int arrivalDay = -priority;
+		if (arrivalDay <= day) {
+			// remove from BACK and mark done
+			BACK_missions.dequeue(m, priority);
+			DONE_missions.push(m);
+
+			// handle the rover
+			rover* r = m->getRover();
+			roverToAvailCheckup(r);
+
+			// (mission completed)
+			m->setRover(nullptr);
+		}
+		else {
+			break;
+		}
+	}
+}
+
+// send to checkup if maintenance required, otherwise return to available.
+void MarsStation::roverToAvailCheckup(rover* r)
+{
+	if (r == nullptr) return;
+
+	// Rover completed one mission returning to base
+	r->incrementMissions();
+
+	char type = r->getType();
+
+	// If rover reached missionsBeforeCheckup threshold, send to checkup
+	if (r->getMissionsCompleted() >= r->getMissionsBeforeCheckup()) {
+		r->setCheckupStartDay(day);
+		r->resetMissions();
+
+		if (type == 'N') checkup_NR.enqueue(r);
+		else if (type == 'P') checkup_PR.enqueue(r);
+		else if (type == 'D') checkup_DR.enqueue(r);
+	}
+	else {
+		// Return to available pool
+		r->setCheckupStartDay(0);
+
+		if (type == 'N') Avail_NR.enqueue(r);
+		else if (type == 'P') Avail_PR.enqueue(r);
+		else if (type == 'D') Avail_DR.enqueue(r);
 	}
 }
