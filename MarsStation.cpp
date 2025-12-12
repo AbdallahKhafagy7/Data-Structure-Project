@@ -143,6 +143,33 @@ void MarsStation::checkUpTest()
 }
 
 
+		// Get Rover Link
+		rover* r = m->getRover();
+		if (r != nullptr)
+		{
+			int x = rand() % 100;
+			char type = r->getType();
+
+			// Rule: X < 20 -> Checkup
+			if (x < 20) {
+				// set checkup start day and send to checkup queue
+				r->setCheckupStartDay(day);
+				if (type == 'N') checkup_NR.enqueue(r);
+				else if (type == 'P') checkup_PR.enqueue(r);
+				else if (type == 'D') checkup_DR.enqueue(r);
+			}
+			else {
+				// return to available and clear checkup start
+				r->setCheckupStartDay(0);
+				if (type == 'N') Avail_NR.enqueue(r);
+				else if (type == 'P') Avail_PR.enqueue(r);
+				else if (type == 'D') Avail_DR.enqueue(r);
+			}
+		}
+	}
+}
+
+
 void MarsStation::moveingOutToExec()
 {
 	mission* m;
@@ -160,7 +187,6 @@ void MarsStation::moveingOutToExec()
 		}
 	}
 }
-
 
 
 // Move rovers whose checkup ended to available lists
@@ -360,9 +386,9 @@ void MarsStation::moveingReadyToOut()
 			m1->setRover(r1);
 			int distance = m1->getTargetLoc();
 			int speed = r1->getSpeed();
-			int dailyDistance = speed * 25;
+			int OneDayDest = speed * 25; //distance yqdr ym4eha fe youm wahed
 
-			int travelDays = (distance + dailyDistance - 1) / dailyDistance;
+			int travelDays = (distance + OneDayDest - 1) / OneDayDest; // mo3adla bdl ma nstkhdm Ceiling
 
 			int arrivalDay = day + travelDays;
 			OUT_missions.enqueue(m1, -arrivalDay);
@@ -389,16 +415,54 @@ void MarsStation::moveingReadyToOut()
 		if (r1 != nullptr)
 		{
 			RDY_NM.dequeue(m1);
-			m1->setRover(r1);
-			int distance = m1->getTargetLoc();
-			int speed = r1->getSpeed();
-			int dailyDistance = speed * 25;
-			int travelDays = (distance + dailyDistance - 1) / dailyDistance;
-			int arrivalDay = day + travelDays;
-			OUT_missions.enqueue(m1, -arrivalDay);
+			m1->setRover(r1) ;
+			int distance  = m1->getTargetLoc();
+			int speed =  r1->getSpeed();
+			int OneDayDest = speed  * 25;
+			int travelDays  = (distance  + OneDayDest - 1) / OneDayDest;
+			int arrivalDay =   day +  travelDays;
+			OUT_missions.enqueue(m1,  -arrivalDay  )   ;
+		}
+		 else 
+		{
+			break; }
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void MarsStation::moveingOutToExec()
+{
+	mission* m; 
+	int ArrDayNegative ; 
+	while (OUT_missions.peek(m, ArrDayNegative))
+	{
+		int arrivalDay = -ArrDayNegative;
+		if (arrivalDay <= day)
+		{
+			OUT_missions.dequeue(m, ArrDayNegative);
+			int executionEndDay = day + m->getDuration();
+			EXEC_missions.enqueue(m, -executionEndDay);
 		}
 		else 
-		{ 	break; }
+		{
+			break;}//already mtrtben.
 	}
 }
 
@@ -407,23 +471,26 @@ void MarsStation::moveingReadyToOut()
 void MarsStation::moveingExecToBack()
 {
 	mission* m;
-	int priority;
+	int FinDayNegativ;
 
-	while (EXEC_missions.peek(m, priority)) {
-		int finishDay = -priority;
-		if (finishDay <= day) {
-			EXEC_missions.dequeue(m, priority);
-			rover* r = m->getRover();
-			int dist = m->getTargetLoc();     
-			int speed = r->getSpeed();        
-			int dailyDist = speed * 25;       
+	while (EXEC_missions.peek(m, FinDayNegativ)) {
+		int finishDay = -FinDayNegativ; //ma7tot bel saleb
+		if (finishDay <= day)
+		{
+			EXEC_missions.dequeue(m, FinDayNegativ);
+			rover* r = m->getRover(); //bageb el rover bta3 el mohma
+			int dist = m->getTargetLoc();
+			int speed = r->getSpeed();
+			int dailyDist = speed * 25;
 			int travelDays = (dist + dailyDist - 1) / dailyDist;
 			int backArrivalDay = day + travelDays;
 			BACK_missions.enqueue(m, -backArrivalDay);
 		}
 		else {
-			break;		}
+			break; // kda kda mtrtben . lw awl wahed mawslsh elba2y mesh haywsel
+		}
 	}
+}
 }
 void MarsStation::moveingBackToDone()
 {
