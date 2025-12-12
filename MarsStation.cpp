@@ -176,15 +176,6 @@ void MarsStation::moveingBackToDone()
 	}
 }
 
-void MarsStation::moveingExecToBack()
-{
-	mission* m;
-	int p;
-	for (int i = 0; i < 2; i++) {
-		if (EXEC_missions.dequeue(m, p)) BACK_missions.enqueue(m, p);
-	}
-}
-
 
 void MarsStation::moveingOutToExec()
 {
@@ -446,5 +437,29 @@ void MarsStation::moveingReadyToOut()
 		}
 		else 
 		{ 	break; }
+	}
+}
+
+
+
+void MarsStation::moveingExecToBack()
+{
+	mission* m;
+	int priority;
+
+	while (EXEC_missions.peek(m, priority)) {
+		int finishDay = -priority;
+		if (finishDay <= day) {
+			EXEC_missions.dequeue(m, priority);
+			rover* r = m->getRover();
+			int dist = m->getTargetLoc();     
+			int speed = r->getSpeed();        
+			int dailyDist = speed * 25;       
+			int travelDays = (dist + dailyDist - 1) / dailyDist;
+			int backArrivalDay = day + travelDays;
+			BACK_missions.enqueue(m, -backArrivalDay);
+		}
+		else {
+			break;		}
 	}
 }
