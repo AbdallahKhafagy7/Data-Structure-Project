@@ -31,6 +31,7 @@ void MarsStation::inputFile(const string filename) {
 	istringstream iss3(line);
 	iss3 >> checkupTime >> checkDurNM >> checkDurPM >> checkDurDM;
 
+	// Create rovers
 	int idCounter = 1;
 	for (int i = 0; i < numNM; ++i) Avail_NR.enqueue(new rover(idCounter++, 'N', speedNM, checkDurNM, checkupTime));
 	for (int i = 0; i < numPM; ++i) Avail_PR.enqueue(new rover(idCounter++, 'P', speedPM, checkDurPM, checkupTime));
@@ -50,6 +51,7 @@ void MarsStation::inputFile(const string filename) {
 			newRequest* p = new newRequest(this, type, id, day, mtype, loc, dur);
 			Requests.enqueue(p);
 
+			// Count totals for statistics
 			if (mtype == 'N') totalMissions_N++;
 			else if (mtype == 'P') totalMissions_P++;
 			else if (mtype == 'D') totalMissions_D++;
@@ -65,13 +67,12 @@ void MarsStation::inputFile(const string filename) {
 }
 
 void MarsStation::simulator() {
-	// 1. Initialize UI with pointer to station
-	UI ui(this);
-
+	UI ui;
 	day = 1;
 	srand(time(0));
 
-	// 2. UI handles mode selection internally in constructor
+	cout << "Select Mode (1: Interactive, 2: Silent): ";
+	cin >> mode;
 
 	string file;
 	cout << "Input File Name: ";
@@ -79,13 +80,17 @@ void MarsStation::simulator() {
 
 	inputFile(file);
 
-	// Optional: Check UI Mode via getter if you need to print start message differently
-	// if(ui.getMode() == SILENT) ...
+	if (mode == 2) {
+		cout << "Silent Mode" << endl;
+		cout << "Simulation Starts..." << endl;
+	}
+	else {
+		cout << "Simulation Starts..." << endl;
+	}
 
-	cout << "Simulation Starts..." << endl;
-
+	// Simulation Loop
 	while (day <= 5000) {
-		// Stop condition
+		// Stop if all lists are empty
 		if (Requests.isEmpty() && EXEC_missions.isEmpty() &&
 			RDY_NM.isEmpty() && RDY_PM.isEmpty() && RDY_DM.isEmpty() &&
 			OUT_missions.isEmpty() && BACK_missions.isEmpty())
@@ -101,19 +106,31 @@ void MarsStation::simulator() {
 		autoAbortPolarReady();
 		moveingReadyToOut();
 
-		// 3. Call UI Print with EXACTLY the 10 arguments it supports
-		ui.printDay(day,
-			&RDY_NM, &RDY_PM, &RDY_DM,
-			&Avail_NR, &Avail_PR, &Avail_DR,
-			&OUT_missions, &EXEC_missions, &BACK_missions,
-			&DONE_missions);
+		// Interactive Mode Printing
+		if (mode == 1) {
+			ui.printDay(day,
+				&Requests,
+				&RDY_NM, &RDY_PM, &RDY_DM,
+				&Avail_NR, &Avail_PR, &Avail_DR,
+				&OUT_missions, &EXEC_missions, &BACK_missions,
+				&DONE_missions, &Aborted_missions,
+				&checkup_NR, &checkup_PR, &checkup_DR);
 
-		// Note: The UI class handles the "Press Enter" logic internally
+			cout << "Press ENTER for next day...";
+			cin.ignore(); cin.get();
+		}
+
 		day++;
 	}
 
 	saveOutputFile();
-	cout << "Output file generated." << endl;
+
+	if (mode == 2) {
+		cout << "Simulation ends, Output file created" << endl;
+	}
+	else {
+		cout << "Output file generated." << endl;
+	}
 }
 
 void MarsStation::handleRequests() {
@@ -137,27 +154,67 @@ void MarsStation::insertMission(mission* m, char type) {
 
 void MarsStation::checkUpTest() {}
 
-void MarsStation::moveCheckupToAvailable() {
+void MarsStation::moveCheckupToAvailable()
+{
 	rover* r;
+	LinkedQueue<rover*> tempQ;
 
-	auto checkList = [&](LinkedQueue<rover*>& list, LinkedQueue<rover*>& avail) {
-		int count = list.getCount();
-		while (count--) {
-			list.dequeue(r);
-			int end = r->getCheckupStartDay() + r->getCheckupDuration();
-			if (end <= day) {
-				r->setCheckupStartDay(0);
-				avail.enqueue(r);
-			}
-			else {
-				list.enqueue(r);
-			}
+	// Process normal rovers
+	while (!checkup_NR.isEmpty()) {
+		checkup_NR.dequeue(r);
+		int start = r->getCheckupStartDay();
+		int end = 0;
+		if (start > 0) end = start + r->getCheckupDuration();
+		if (start > 0 && end <= day) {
+			r->setCheckupStartDay(0);
+			Avail_NR.enqueue(r);
 		}
-		};
+		else {
+			tempQ.enqueue(r);
+		}
+	}
+	while (!tempQ.isEmpty()) {
+		tempQ.dequeue(r);
+		checkup_NR.enqueue(r);
+	}
 
-	checkList(checkup_NR, Avail_NR);
-	checkList(checkup_PR, Avail_PR);
-	checkList(checkup_DR, Avail_DR);
+	// Process polar rovers
+	while (!checkup_PR.isEmpty()) {
+		checkup_PR.dequeue(r);
+		int start = r->getCheckupStartDay();
+		int end = 0;
+		if (start > 0) end = start + r->getCheckupDuration();
+		if (start > 0 && end <= day) {
+			r->setCheckupStartDay(0);
+			Avail_PR.enqueue(r);
+		}
+		else {
+			tempQ.enqueue(r);
+		}
+	}
+	while (!tempQ.isEmpty()) {
+		tempQ.dequeue(r);
+		checkup_PR.enqueue(r);
+	}
+
+	// Process digging rovers
+	while (!checkup_DR.isEmpty()) {
+		checkup_DR.dequeue(r);
+		int start = r->getCheckupStartDay();
+		int end = 0;
+		if (start > 0) end = start + r->getCheckupDuration();
+		if (start > 0 && end <= day) {
+			r->setCheckupStartDay(0);
+			Avail_DR.enqueue(r);
+		}
+		else {
+			tempQ.enqueue(r);
+		}
+	}
+	while (!tempQ.isEmpty()) {
+		tempQ.dequeue(r);
+		checkup_DR.enqueue(r);
+	}
 }
 
 void MarsStation::AbortMission(int missionID) {
@@ -212,6 +269,7 @@ void MarsStation::moveingReadyToOut() {
 	mission* m;
 	rover* r;
 
+	// 1. Polar Logic
 	while (RDY_PM.peek(m)) {
 		r = NULL;
 		if (!Avail_PR.isEmpty()) Avail_PR.dequeue(r);
@@ -222,6 +280,7 @@ void MarsStation::moveingReadyToOut() {
 			RDY_PM.dequeue(m);
 			m->setRover(r);
 
+			// Calculate Travel & Stats
 			int days = (m->getTargetLoc() + (r->getSpeed() * 25) - 1) / (r->getSpeed() * 25);
 			m->setExecutionDays(days * 2 + m->getDuration());
 			m->setWaitingDays(day - m->getRDay());
@@ -231,6 +290,7 @@ void MarsStation::moveingReadyToOut() {
 		else break;
 	}
 
+	// 2. Digging Logic
 	while (RDY_DM.peek(m)) {
 		r = NULL;
 		if (!Avail_DR.isEmpty()) Avail_DR.dequeue(r);
@@ -247,6 +307,7 @@ void MarsStation::moveingReadyToOut() {
 		else break;
 	}
 
+	// 3. Normal Logic
 	while (RDY_NM.peek(m)) {
 		r = NULL;
 		if (!Avail_NR.isEmpty()) Avail_NR.dequeue(r);
@@ -333,6 +394,7 @@ void MarsStation::saveOutputFile() {
 	int count = 0;
 	int waitSum = 0, execSum = 0, durSum = 0;
 
+	// Stack pops in descending order of finish time
 	while (!DONE_missions.isEmpty()) {
 		DONE_missions.pop(m);
 

@@ -123,6 +123,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="abortRequest.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MarsStation.cpp" />
     <ClCompile Include="mission.cpp" />

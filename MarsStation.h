@@ -16,6 +16,7 @@ using namespace std;
 class MarsStation {
 private:
 	int day = 0;
+	int mode = 1; // 1 for Interactive, 2 for Silent
 
 	int numNM, numPM, numDM;
 	int speedNM, speedPM, speedDM;
@@ -51,7 +52,7 @@ public:
 	void insertMission(mission* m, char type);
 	void handleRequests();
 
-	void checkUpTest();
+	void checkUpTest(); // Kept for compatibility
 	void moveingBackToDone();
 	void moveingReadyToOut();
 	void moveingOutToExec();

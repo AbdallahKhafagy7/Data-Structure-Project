@@ -17,7 +17,7 @@ int mission::getRDay() const { return readyDay; }
 void mission::setRover(rover* r) { assignedRover = r; }
 rover* mission::getRover() const { return assignedRover; }
 
-// Statistics Implementation
+// Implementation of stats functions
 void mission::setWaitingDays(int d) { waitingDays = d; }
 void mission::setExecutionDays(int d) { executionDays = d; }
 int mission::getWaitingDays() const { return waitingDays; }

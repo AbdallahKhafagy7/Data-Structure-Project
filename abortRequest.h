@@ -1,18 +1,15 @@
 #pragma once
 #include <iostream>
-#include "./request.h"
+#include "request.h"
+
+// Forward declaration
+class MarsStation;
 
 class abortRequest : public request {
-private:
-
 public:
-	abortRequest(MarsStation* s, char reqType, int id, int day)
-		: request(s, reqType, id, day) {
-	}
+	// Constructor Declaration
+	abortRequest(MarsStation* s, char reqType, int id, int day);
 
-	void Operate() override {
-		if (station) {
-			station->AbortMission(missionID);
-		}
-	}
+	// Function Declaration only
+	void Operate() override;
 };

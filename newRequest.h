@@ -13,10 +13,13 @@ private:
 
 public:
 	newRequest(MarsStation* s, char reqType, int id, int day, char t, int loc, int dur)
-		: request(s, reqType,id, day),
+		: request(s, reqType, id, day),
 		missionType(t),
 		targetLocation(loc),
 		duration(dur) {}
 
-	void Operate() override; // implemented in newRequest.cpp
+	void Operate() override;
+
+	// --- ADDED THIS FUNCTION TO FIX THE ERROR ---
+	char getMissionType() const { return missionType; }
 };

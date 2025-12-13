@@ -13,7 +13,7 @@ private:
 	int ID;
 	int readyDay;
 
-	// Phase 2 Statistics
+	// Phase 2: Statistics
 	int waitingDays;
 	int executionDays;
 
@@ -31,7 +31,7 @@ public:
 	void setRover(rover* r);
 	rover* getRover() const;
 
-	// Statistics Setters/Getters
+	// Stats setters and getters
 	void setWaitingDays(int d);
 	void setExecutionDays(int d);
 	int getWaitingDays() const;
